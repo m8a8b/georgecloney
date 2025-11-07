@@ -17,8 +17,8 @@ export * from './parsers';
 // Export utilities
 export * from './utils';
 
-// Export enzyme analysis (to be implemented)
-// export * from './enzymes';
+// Export enzyme analysis
+export * from './enzymes';
 
 // Export analysis functions (to be implemented)
 // export * from './analysis';
