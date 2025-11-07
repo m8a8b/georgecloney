@@ -11,8 +11,11 @@
 // Export types
 export * from './types';
 
-// Export parsers (to be implemented)
-// export * from './parsers';
+// Export parsers
+export * from './parsers';
+
+// Export utilities
+export * from './utils';
 
 // Export enzyme analysis (to be implemented)
 // export * from './enzymes';
@@ -20,8 +23,5 @@ export * from './types';
 // Export analysis functions (to be implemented)
 // export * from './analysis';
 
-// Export utilities (to be implemented)
-// export * from './utils';
-
-// Placeholder export
+// Version
 export const version = '0.1.0';
