@@ -59,13 +59,19 @@ docker-compose up
 
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
 # Run development server
-pnpm --filter @clonelab/web dev
+npm run dev
+
+# Or navigate to the web package directly
+cd packages/web
+npm run dev
 ```
 
 **Frontend:** http://localhost:3000
+
+> **Note:** You can also use `pnpm` or `yarn` if you prefer. npm workspaces are fully supported.
 
 ## Features
 
@@ -121,8 +127,8 @@ mypy app                 # Type check
 
 ### Frontend Tests
 ```bash
-pnpm test                # Run tests
-pnpm build               # Build for production
+npm test                 # Run tests
+npm run build            # Build for production
 ```
 
 ## API Endpoints
