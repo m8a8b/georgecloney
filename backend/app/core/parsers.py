@@ -12,7 +12,7 @@ from typing import Literal, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord as BioSeqRecord
-from Bio.SeqUtils import GC, molecular_weight
+from Bio.SeqUtils import gc_fraction, molecular_weight
 
 from app.models.schemas import Feature, SequenceRecord
 
@@ -131,7 +131,7 @@ def biopython_to_schema(bio_record: BioSeqRecord) -> SequenceRecord:
             continue
 
     # Calculate properties
-    gc_content = GC(bio_record.seq)
+    gc_content = gc_fraction(bio_record.seq) * 100  # Convert fraction to percentage
     mol_weight = molecular_weight(bio_record.seq, seq_type="DNA", double_stranded=True)
 
     return SequenceRecord(
