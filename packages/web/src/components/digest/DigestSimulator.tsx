@@ -6,9 +6,13 @@ import { Card } from '../common/Card';
 
 interface DigestSimulatorProps {
   sequence: SequenceRecord;
+  onDigestComplete?: (result: DigestResponse) => void;
 }
 
-export const DigestSimulator: React.FC<DigestSimulatorProps> = ({ sequence }) => {
+export const DigestSimulator: React.FC<DigestSimulatorProps> = ({
+  sequence,
+  onDigestComplete
+}) => {
   const [enzymes, setEnzymes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +39,11 @@ export const DigestSimulator: React.FC<DigestSimulatorProps> = ({ sequence }) =>
         topology: sequence.topology,
       });
       setResult(digestResult);
+
+      // Call callback to notify parent
+      if (onDigestComplete) {
+        onDigestComplete(digestResult);
+      }
     } catch (err: any) {
       setError(err.detail || err.message || 'Digest simulation failed');
       console.error(err);
@@ -134,28 +143,6 @@ export const DigestSimulator: React.FC<DigestSimulatorProps> = ({ sequence }) =>
                     )}
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Virtual Gel Visualization */}
-            <div className="border-t border-gray-200 pt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Virtual Gel</h4>
-              <div className="bg-gray-900 p-4 rounded-lg">
-                <div className="flex items-end justify-around h-64">
-                  {result.fragments.map((fragment, index) => {
-                    const height = (fragment.length / result.largest_fragment) * 100;
-                    return (
-                      <div key={fragment.id} className="flex flex-col items-center gap-2">
-                        <div
-                          className="w-8 bg-blue-400 rounded-t transition-all hover:bg-blue-300"
-                          style={{ height: `${height}%` }}
-                          title={`${fragment.length} bp`}
-                        />
-                        <span className="text-xs text-gray-400">{index + 1}</span>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           </div>

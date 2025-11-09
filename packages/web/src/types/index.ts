@@ -24,6 +24,7 @@ export interface SequenceRecord {
   gc_content: number;
   molecular_weight: number;
   description?: string;
+  role?: 'vector' | 'insert'; // For cloning workflow
 }
 
 export interface RestrictionSite {
@@ -60,6 +61,22 @@ export interface DigestResponse {
   total_fragments: number;
   largest_fragment: number;
   smallest_fragment: number;
+}
+
+export interface LigationProduct {
+  id: string;
+  type: 'correct' | 'reverse' | 'self-ligation' | 'concatemer' | 'other';
+  sequence: string;
+  length: number;
+  probability: number;
+  fragment_ids: string[];
+  description: string;
+  is_desired: boolean;
+}
+
+export interface LigationResponse {
+  products: LigationProduct[];
+  desired_product: LigationProduct | null;
 }
 
 export interface HealthResponse {

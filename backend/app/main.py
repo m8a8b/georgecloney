@@ -16,8 +16,10 @@ from app.core.enzymes import (
     find_single_cutters,
     suggest_enzyme_pairs,
 )
+from app.core.ligation import simulate_ligation, check_compatibility
 from app.core.parsers import detect_format, parse_multi_fasta, parse_sequence
 from app.models.schemas import (
+    DigestFragment,
     DigestRequest,
     DigestResponse,
     EnzymePairRequest,
@@ -26,6 +28,8 @@ from app.models.schemas import (
     EnzymeSitesResponse,
     ErrorResponse,
     HealthResponse,
+    LigationRequest,
+    LigationResponse,
     SequenceUploadRequest,
 )
 
@@ -253,6 +257,84 @@ async def simulate_restriction_digest(request: DigestRequest) -> DigestResponse:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Digest simulation error: {str(e)}")
+
+
+# ============================================================================
+# Ligation Endpoints
+# ============================================================================
+
+
+# Store fragments temporarily in memory (in production, use a database)
+_fragment_cache: dict[str, DigestFragment] = {}
+
+
+@app.post("/api/ligation/store-fragments", tags=["Ligation"])
+async def store_fragments(fragments: list[DigestFragment]):
+    """
+    Store digest fragments for later ligation.
+
+    This is a helper endpoint to store fragments in memory so they can be
+    referenced by ID in ligation requests.
+    """
+    for fragment in fragments:
+        _fragment_cache[fragment.id] = fragment
+
+    return {"stored": len(fragments), "fragment_ids": [f.id for f in fragments]}
+
+
+@app.post(
+    "/api/ligation/simulate",
+    response_model=LigationResponse,
+    tags=["Ligation"],
+)
+async def simulate_ligation_endpoint(request: LigationRequest) -> LigationResponse:
+    """
+    Simulate ligation of vector and insert fragments.
+
+    Predicts potential ligation products including correct, reverse,
+    self-ligation, and concatemer products.
+    """
+    try:
+        # Get fragments from cache
+        vector_fragment = _fragment_cache.get(request.vector_fragment_id)
+        insert_fragment = _fragment_cache.get(request.insert_fragment_id)
+
+        if not vector_fragment:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Vector fragment {request.vector_fragment_id} not found. Store fragments first.",
+            )
+
+        if not insert_fragment:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Insert fragment {request.insert_fragment_id} not found. Store fragments first.",
+            )
+
+        # Check compatibility
+        compatibility = check_compatibility(vector_fragment, insert_fragment)
+        if not compatibility["compatible"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Fragments not compatible: {', '.join(compatibility['warnings'])}",
+            )
+
+        # Simulate ligation
+        products = simulate_ligation(
+            vector_fragment=vector_fragment,
+            insert_fragment=insert_fragment,
+            molar_ratio=request.molar_ratio,
+        )
+
+        # Find desired product
+        desired = next((p for p in products if p.is_desired), None)
+
+        return LigationResponse(products=products, desired_product=desired)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ligation simulation error: {str(e)}")
 
 
 # ============================================================================

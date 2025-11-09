@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { SequenceUpload } from './components/sequence/SequenceUpload';
+import { SequenceManager } from './components/sequence/SequenceManager';
 import { SequenceInfo } from './components/sequence/SequenceInfo';
 import { EnzymeAnalysis } from './components/enzyme/EnzymeAnalysis';
 import { DigestSimulator } from './components/digest/DigestSimulator';
+import { LigationPlanner } from './components/ligation/LigationPlanner';
 import { getHealth } from './api/client';
-import type { SequenceRecord } from './types';
+import type { SequenceRecord, DigestResponse } from './types';
 
 function App() {
-  const [sequence, setSequence] = useState<SequenceRecord | null>(null);
+  const [sequences, setSequences] = useState<SequenceRecord[]>([]);
+  const [selectedSequenceId, setSelectedSequenceId] = useState<string>('');
+  const [digestResults, setDigestResults] = useState<Map<string, DigestResponse>>(new Map());
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
@@ -16,6 +19,16 @@ function App() {
       .then(() => setBackendStatus('online'))
       .catch(() => setBackendStatus('offline'));
   }, []);
+
+  const selectedSequence = sequences.find((seq) => seq.id === selectedSequenceId);
+  const vectorSequence = sequences.find((seq) => seq.role === 'vector');
+  const insertSequence = sequences.find((seq) => seq.role === 'insert');
+  const vectorDigest = vectorSequence ? digestResults.get(vectorSequence.id) : undefined;
+  const insertDigest = insertSequence ? digestResults.get(insertSequence.id) : undefined;
+
+  const handleDigestComplete = (sequenceId: string, result: DigestResponse) => {
+    setDigestResults((prev) => new Map(prev).set(sequenceId, result));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,69 +98,123 @@ function App() {
           )}
 
           <div className="px-4 sm:px-0">
-            {!sequence ? (
-              /* Upload View */
-              <div className="max-w-2xl mx-auto">
-                <SequenceUpload onSequenceParsed={setSequence} />
+            <div className="space-y-6">
+              {/* Sequence Manager */}
+              <SequenceManager sequences={sequences} onSequencesChange={setSequences} />
 
-                <div className="mt-8 p-6 bg-blue-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-3">
-                    🧬 Getting Started
+              {sequences.length > 0 && (
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Select Sequence to Analyze
                   </h3>
-                  <ol className="space-y-2 text-sm text-blue-800">
-                    <li>
-                      <strong>1. Upload your sequence</strong> - FASTA or GenBank format
-                    </li>
-                    <li>
-                      <strong>2. Analyze restriction sites</strong> - Find single cutters for cloning
-                    </li>
-                    <li>
-                      <strong>3. Simulate digests</strong> - See predicted fragments
-                    </li>
-                    <li>
-                      <strong>4. Plan your cloning</strong> - Get enzyme pair suggestions
-                    </li>
-                  </ol>
-                </div>
-              </div>
-            ) : (
-              /* Analysis View */
-              <div className="space-y-6">
-                {/* Action Bar */}
-                <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">{sequence.name}</h2>
-                    <p className="text-sm text-gray-600">
-                      {sequence.length.toLocaleString()} bp • {sequence.topology}
-                    </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {sequences.map((seq) => (
+                      <button
+                        key={seq.id}
+                        onClick={() =>
+                          setSelectedSequenceId(
+                            selectedSequenceId === seq.id ? '' : seq.id
+                          )
+                        }
+                        className={`p-3 border rounded-lg text-left transition-colors ${
+                          selectedSequenceId === seq.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900 truncate">
+                          {seq.name}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {seq.length.toLocaleString()} bp
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          <span
+                            className={`px-2 py-0.5 text-xs font-medium rounded ${
+                              seq.role === 'vector'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {seq.role}
+                          </span>
+                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                            {seq.topology}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <button
-                    onClick={() => setSequence(null)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                  >
-                    ← Upload New Sequence
-                  </button>
                 </div>
+              )}
 
-                {/* Analysis Grid */}
+              {selectedSequence && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Left Column - Sequence Info */}
                   <div className="space-y-6">
-                    <SequenceInfo sequence={sequence} />
+                    <SequenceInfo sequence={selectedSequence} />
                   </div>
 
                   {/* Middle Column - Enzyme Analysis */}
                   <div className="space-y-6">
-                    <EnzymeAnalysis sequence={sequence} />
+                    <EnzymeAnalysis sequence={selectedSequence} />
                   </div>
 
                   {/* Right Column - Digest Simulator */}
                   <div className="space-y-6">
-                    <DigestSimulator sequence={sequence} />
+                    <DigestSimulator
+                      sequence={selectedSequence}
+                      onDigestComplete={(result) =>
+                        handleDigestComplete(selectedSequence.id, result)
+                      }
+                    />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Ligation Planner - Show only if both vector and insert are digested */}
+              {vectorSequence &&
+                insertSequence &&
+                vectorDigest &&
+                insertDigest &&
+                vectorDigest.fragments.length > 0 &&
+                insertDigest.fragments.length > 0 && (
+                  <div className="mt-8">
+                    <LigationPlanner
+                      vectorFragments={vectorDigest.fragments}
+                      insertFragments={insertDigest.fragments}
+                      vectorName={vectorSequence.name}
+                      insertName={insertSequence.name}
+                    />
+                  </div>
+                )}
+
+              {sequences.length === 0 && (
+                <div className="max-w-2xl mx-auto mt-8 p-6 bg-blue-50 rounded-lg">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-3">
+                    🧬 Getting Started with Cloning
+                  </h3>
+                  <ol className="space-y-2 text-sm text-blue-800">
+                    <li>
+                      <strong>1. Upload your vector</strong> - Select "Vector" role and
+                      "Circular" topology for plasmids
+                    </li>
+                    <li>
+                      <strong>2. Upload your insert</strong> - Select "Insert" role (topology
+                      auto-switches to "Linear")
+                    </li>
+                    <li>
+                      <strong>3. Analyze and digest both</strong> - Find single-cutter enzymes
+                      and simulate digests
+                    </li>
+                    <li>
+                      <strong>4. Plan ligation</strong> - Select fragments and predict cloning
+                      products
+                    </li>
+                  </ol>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>

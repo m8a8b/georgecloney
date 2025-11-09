@@ -7,6 +7,8 @@ import type {
   RestrictionSite,
   EnzymePair,
   DigestResponse,
+  DigestFragment,
+  LigationResponse,
   HealthResponse,
 } from '../types';
 
@@ -185,6 +187,37 @@ export async function simulateDigest(
   request: SimulateDigestRequest
 ): Promise<DigestResponse> {
   return fetchAPI<DigestResponse>('/api/digest/simulate', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+// ============================================================================
+// Ligation Operations
+// ============================================================================
+
+export async function storeFragments(
+  fragments: DigestFragment[]
+): Promise<{ stored: number; fragment_ids: string[] }> {
+  return fetchAPI<{ stored: number; fragment_ids: string[] }>(
+    '/api/ligation/store-fragments',
+    {
+      method: 'POST',
+      body: JSON.stringify(fragments),
+    }
+  );
+}
+
+export interface SimulateLigationRequest {
+  vector_fragment_id: string;
+  insert_fragment_id: string;
+  molar_ratio?: number;
+}
+
+export async function simulateLigation(
+  request: SimulateLigationRequest
+): Promise<LigationResponse> {
+  return fetchAPI<LigationResponse>('/api/ligation/simulate', {
     method: 'POST',
     body: JSON.stringify(request),
   });
