@@ -6,9 +6,10 @@ import { Card } from '../common/Card';
 
 interface EnzymeAnalysisProps {
   sequence: SequenceRecord;
+  onEnzymeSelect?: (enzymes: string[]) => void;
 }
 
-export const EnzymeAnalysis: React.FC<EnzymeAnalysisProps> = ({ sequence }) => {
+export const EnzymeAnalysis: React.FC<EnzymeAnalysisProps> = ({ sequence, onEnzymeSelect }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sites, setSites] = useState<Record<string, RestrictionSite[]> | null>(null);
@@ -81,16 +82,18 @@ export const EnzymeAnalysis: React.FC<EnzymeAnalysisProps> = ({ sequence }) => {
               {singleCutters && singleCutters.length > 0 && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">
-                    Single Cutters ({singleCutters.length}):
+                    Single Cutters ({singleCutters.length}) - Click to use for digest:
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {singleCutters.slice(0, 20).map((enzyme) => (
-                      <span
+                      <button
                         key={enzyme}
-                        className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded"
+                        onClick={() => onEnzymeSelect?.([enzyme])}
+                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-medium rounded cursor-pointer transition-colors"
+                        title="Click to use in digest"
                       >
                         {enzyme}
-                      </span>
+                      </button>
                     ))}
                     {singleCutters.length > 20 && (
                       <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">
@@ -127,8 +130,15 @@ export const EnzymeAnalysis: React.FC<EnzymeAnalysisProps> = ({ sequence }) => {
                   .filter(([_, s]) => s.length > 0)
                   .sort((a, b) => a[1].length - b[1].length)
                   .map(([enzyme, enzymeSites]) => (
-                    <tr key={enzyme} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm font-medium text-gray-900">{enzyme}</td>
+                    <tr
+                      key={enzyme}
+                      className="hover:bg-blue-50 cursor-pointer transition-colors"
+                      onClick={() => onEnzymeSelect?.([enzyme])}
+                      title="Click to use in digest"
+                    >
+                      <td className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800">
+                        {enzyme}
+                      </td>
                       <td className="px-4 py-2 text-sm text-gray-700">{enzymeSites.length}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">
                         {enzymeSites.length <= 5

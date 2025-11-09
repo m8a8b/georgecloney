@@ -6,17 +6,26 @@ import { Card } from '../common/Card';
 
 interface DigestSimulatorProps {
   sequence: SequenceRecord;
+  selectedEnzymes?: string[];
   onDigestComplete?: (result: DigestResponse) => void;
 }
 
 export const DigestSimulator: React.FC<DigestSimulatorProps> = ({
   sequence,
+  selectedEnzymes,
   onDigestComplete
 }) => {
   const [enzymes, setEnzymes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DigestResponse | null>(null);
+
+  // Update enzymes when selectedEnzymes changes
+  React.useEffect(() => {
+    if (selectedEnzymes && selectedEnzymes.length > 0) {
+      setEnzymes(selectedEnzymes.join(', '));
+    }
+  }, [selectedEnzymes]);
 
   const handleSimulate = async () => {
     const enzymeList = enzymes

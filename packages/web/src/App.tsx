@@ -12,6 +12,7 @@ function App() {
   const [selectedSequenceId, setSelectedSequenceId] = useState<string>('');
   const [digestResults, setDigestResults] = useState<Map<string, DigestResponse>>(new Map());
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [selectedEnzymes, setSelectedEnzymes] = useState<string[]>([]);
 
   useEffect(() => {
     // Check backend health on mount
@@ -19,6 +20,11 @@ function App() {
       .then(() => setBackendStatus('online'))
       .catch(() => setBackendStatus('offline'));
   }, []);
+
+  // Clear selected enzymes when switching sequences
+  useEffect(() => {
+    setSelectedEnzymes([]);
+  }, [selectedSequenceId]);
 
   const selectedSequence = sequences.find((seq) => seq.id === selectedSequenceId);
   const vectorSequence = sequences.find((seq) => seq.role === 'vector');
@@ -152,18 +158,24 @@ function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Left Column - Sequence Info */}
                   <div className="space-y-6">
-                    <SequenceInfo sequence={selectedSequence} />
+                    <SequenceInfo key={selectedSequence.id} sequence={selectedSequence} />
                   </div>
 
                   {/* Middle Column - Enzyme Analysis */}
                   <div className="space-y-6">
-                    <EnzymeAnalysis sequence={selectedSequence} />
+                    <EnzymeAnalysis
+                      key={selectedSequence.id}
+                      sequence={selectedSequence}
+                      onEnzymeSelect={(enzymes) => setSelectedEnzymes(enzymes)}
+                    />
                   </div>
 
                   {/* Right Column - Digest Simulator */}
                   <div className="space-y-6">
                     <DigestSimulator
+                      key={selectedSequence.id}
                       sequence={selectedSequence}
+                      selectedEnzymes={selectedEnzymes}
                       onDigestComplete={(result) =>
                         handleDigestComplete(selectedSequence.id, result)
                       }
